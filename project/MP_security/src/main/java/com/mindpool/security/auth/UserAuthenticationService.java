@@ -5,6 +5,8 @@ import java.util.Set;
 
 public interface UserAuthenticationService {
 
-	public Set<String> authenticateUser(String username, String password) throws Exception;
+	public Principal authenticateUser(String username, String password) throws Exception;
+	
+	public Set<String>getRoles(Principal username);
 		
 }

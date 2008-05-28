@@ -1,10 +1,12 @@
 package com.mindpool.security.auth.impl;
 
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
 import com.mindpool.security.auth.UserAuthenticationService;
+import com.mindpool.security.principal.UserPrincipal;
 
 public class UserAuthenticatorTestImpl implements UserAuthenticationService {
 
@@ -14,12 +16,18 @@ public class UserAuthenticatorTestImpl implements UserAuthenticationService {
 	private HashSet<String>roles = new HashSet<String>();
 	
 	
-	public Set<String> authenticateUser(String username, String password) throws Exception {
+	public Principal authenticateUser(String username, String password) throws Exception {
 		if(this.username.equals(username) && this.password.equals(password)) {
-			roles.add("ROLE_ADMIN");
-			return roles;
+			return new UserPrincipal(username);
 		}
+		
 		return null;
+	}
+	
+	public Set<String> getRoles(Principal user) {
+		
+		return this.roles;
+		
 	}
 	
 	public void setUsername(String username){

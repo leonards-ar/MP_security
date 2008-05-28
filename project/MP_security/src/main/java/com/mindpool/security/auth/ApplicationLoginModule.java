@@ -230,26 +230,26 @@ public class ApplicationLoginModule implements LoginModule {
 				log.debug("user entered password: " + String.valueOf(password));
 			}
 
-			roles = userAuthenticator.authenticateUser(username, String.valueOf(tmpPassword));
+			user = userAuthenticator.authenticateUser(username, String.valueOf(tmpPassword));
+
 			
-			if (roles == null) {
+			if (user == null) {
 				// authentication failed -- clean out state
 				if (debug)
 					log.debug("authentication failed");
+				
 				succeeded = false;
 				username = null;
 				for (int i = 0; i < password.length; i++)
 					password[i] = ' ';
 				throw new FailedLoginException("User not found.");
 			}
-			
+			roles = userAuthenticator.getRoles(user);			
 			if (debug)
 				log.debug("authentication succeeded");
+			
 			succeeded = true;
 			
-			// authentication succeeded!!!
-			user = new UserPrincipal(username);
-
 		} catch (java.io.IOException ioe) {
 			throw new LoginException(ioe.toString());
 		} catch (UnsupportedCallbackException uce) {
