@@ -129,6 +129,13 @@ public class ApplicationLoginModule implements LoginModule {
 				group.addMember(new UserPrincipal(role));
 			}
 			subject.getPrincipals().add(group);
+			if(hasPermissions){
+				group = new UserGroup(permissionName);
+				for(String permission: permissions){
+					group.addMember(new UserPrincipal(permission));
+				}
+				subject.getPrincipals().add(group);
+			}
 		}
 
 		if (debug) {
