@@ -3,7 +3,16 @@
 	"http://www.springframework.org/dtd/spring-beans.dtd">
 <beans>
 	<bean id="userTestAuthenticate" class="com.mindpool.security.auth.impl.UserAuthenticatorTestImpl">
+		<property name="user" ref="mockUser"/>
+	</bean>
+	
+	<bean id="mockUser" class="com.mindpool.security.principal.MockUser">
 		<property name="username" value="torimpo" />
 		<property name="password" value="123" />
+		<property name="roles">
+		  <list>
+		    <value>USER_ROLE</value>
+		  </list>
+		</property>
 	</bean>
 </beans>

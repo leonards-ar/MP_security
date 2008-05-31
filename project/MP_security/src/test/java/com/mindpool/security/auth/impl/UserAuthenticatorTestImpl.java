@@ -1,45 +1,35 @@
 package com.mindpool.security.auth.impl;
 
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Set;
 
-import com.mindpool.security.auth.UserAuthenticationService;
-import com.mindpool.security.principal.UserPrincipal;
+import com.mindpool.security.principal.MockUser;
+import com.mindpool.security.principal.SecurityUser;
+import com.mindpool.security.service.UserAuthenticationService;
 
 public class UserAuthenticatorTestImpl implements UserAuthenticationService {
 
-	private String username;
-	private String password;
-	
-	private HashSet<String>roles = new HashSet<String>();
+	MockUser user;
 	
 	
-	public Principal authenticateUser(String username, String password) throws Exception {
-		if(this.username.equals(username) && this.password.equals(password)) {
-			return new UserPrincipal(username);
+	public SecurityUser authenticateUser(String username, String password) throws Exception {
+		if(username.equals(user.getUsername()) && password.equals(password)) {
+			return user;
 		}
 		
 		return null;
 	}
 	
-	public Set<String> getRoles(Principal user) {
-		
-		return this.roles;
-		
+	public Set<String> getRoles(SecurityUser user) {
+		return user.getRoles();
 	}
 	
-	public void setUsername(String username){
-		this.username = username;
+	public Set<String> getPermissions(SecurityUser user) {
+		throw new SecurityException("Method not implemented");
 	}
 	
-	public void setPassword(String password) {
-		this.password = password;
-	}
 	
-	public void setRoles(ArrayList<String> roles ){
-		this.roles = new HashSet<String>(roles);
+	public void setUser(MockUser user){
+		this.user = user;
 	}
 	
 

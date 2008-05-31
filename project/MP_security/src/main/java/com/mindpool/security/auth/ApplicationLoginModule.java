@@ -1,6 +1,5 @@
 package com.mindpool.security.auth;
 
-import java.security.Principal;
 import java.security.acl.Group;
 import java.util.Map;
 import java.util.Set;
@@ -21,8 +20,10 @@ import org.springframework.beans.factory.xml.XmlBeanFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 
+import com.mindpool.security.principal.SecurityUser;
 import com.mindpool.security.principal.UserGroup;
 import com.mindpool.security.principal.UserPrincipal;
+import com.mindpool.security.service.UserAuthenticationService;
 
 public class ApplicationLoginModule implements LoginModule {
 
@@ -37,23 +38,28 @@ public class ApplicationLoginModule implements LoginModule {
 
 	
 	private static final String GROUP_NAME = "GROUP_NAME";
+	private static final String PERMISSION_NAME = "PERMISSION_NAME";
 	private static final String DEFAULT_GROUP_NAME = "Roles";
-
+	private static final String DEFAULT_PERMISSION_NAME = "Permissions";
+	private static final String USE_PERMISSIONS_NAME = "USE_PERMISSIONS";
 	private static final String APP_CONTEXT_LOCATION = "APP_CONTEXT_LOCATION";
 	private static final String USER_AUTH_BEAN_NAME = "USER_AUTH_BEAN_NAME";
 
 	private String groupName = null;
+	private String permissionName = null;
 
 	private Resource contextLocation = null;
 	private String userBeanName = null;
 
 	private boolean debug = false;
-
+	private boolean hasPermissions = false;
+	
 	private boolean succeeded = false;
 	private boolean commitSucceeded = false;
 
-	private Principal user;
+	private SecurityUser user;
 	private Set<String> roles;
+	private Set<String> permissions;
 
 	/**
 	 * <p>
@@ -169,6 +175,12 @@ public class ApplicationLoginModule implements LoginModule {
 		groupName = (options.get(GROUP_NAME) != null) ? (String) options
 				.get(GROUP_NAME) : DEFAULT_GROUP_NAME;
 				
+		hasPermissions = "true".equalsIgnoreCase((String) options.get(USE_PERMISSIONS_NAME));
+		if(hasPermissions) {
+			permissionName = (options.get(PERMISSION_NAME) != null) ? (String) options
+					.get(PERMISSION_NAME) : DEFAULT_PERMISSION_NAME;
+		}
+		
 	    contextLocation = new ClassPathResource((String)options.get(APP_CONTEXT_LOCATION));
 	    userBeanName = (String) options.get(USER_AUTH_BEAN_NAME);
 	    
@@ -244,7 +256,12 @@ public class ApplicationLoginModule implements LoginModule {
 					password[i] = ' ';
 				throw new FailedLoginException("User not found.");
 			}
-			roles = userAuthenticator.getRoles(user);			
+			roles = userAuthenticator.getRoles(user);
+			
+			if(hasPermissions){
+				permissions = userAuthenticator.getPermissions(user);
+			}
+			
 			if (debug)
 				log.debug("authentication succeeded");
 			
