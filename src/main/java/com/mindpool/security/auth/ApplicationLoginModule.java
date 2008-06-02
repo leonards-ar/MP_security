@@ -17,7 +17,7 @@ import javax.security.auth.spi.LoginModule;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.xml.XmlBeanFactory;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 
 import com.mindpool.security.principal.SecurityUser;
@@ -188,7 +188,7 @@ public class ApplicationLoginModule implements LoginModule {
 					.get(PERMISSION_NAME) : DEFAULT_PERMISSION_NAME;
 		}
 		
-	    contextLocation = new ClassPathResource((String)options.get(APP_CONTEXT_LOCATION));
+	    contextLocation = new FileSystemResource((String)options.get(APP_CONTEXT_LOCATION));
 	    userBeanName = (String) options.get(USER_AUTH_BEAN_NAME);
 	    
 	    if (debug){
@@ -281,6 +281,7 @@ public class ApplicationLoginModule implements LoginModule {
 					+ " not available to garner authentication information "
 					+ "from the user");
 		} catch (Exception e) {
+			log.error("Unexpected Exception. ", e);
 			throw new LoginException("Unexpected Exception: " + e.getMessage());
 		}
 		return succeeded;

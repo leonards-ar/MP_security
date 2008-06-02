@@ -5,7 +5,7 @@
 	<groupId>com.mindpool</groupId>
 	<artifactId>security</artifactId>
 	<packaging>jar</packaging>
-	<version>1.0.1</version>
+	<version>1.0.2</version>
 	<name>security</name>
 	<url>http://www.mindpool.com.ar</url>
 	<build>
