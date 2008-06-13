@@ -12,7 +12,7 @@ public class UserAuthenticatorTestImpl implements UserAuthenticationService {
 	MockUser user;
 	
 	
-	public Principal authenticate(String username, String password) throws LoginException {
+	public Principal authenticate(String username, String password) {
 		if(username.equals(user.getUsername()) && password.equals(password)) {
 			return user;
 		}
