@@ -1,8 +1,7 @@
 package com.mindpool.security.auth;
 
-import java.security.acl.Group;
+import java.security.Principal;
 import java.util.Map;
-import java.util.Set;
 
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
@@ -15,17 +14,18 @@ import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
 import org.apache.log4j.Logger;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
-import com.mindpool.security.principal.SecurityUser;
-import com.mindpool.security.principal.UserGroup;
-import com.mindpool.security.principal.UserPrincipal;
+import com.mindpool.security.exceptions.BadPasswordException;
+import com.mindpool.security.exceptions.PasswordChangeRequiredException;
+import com.mindpool.security.exceptions.PasswordExpiredException;
+import com.mindpool.security.exceptions.UserDisabledException;
 import com.mindpool.security.service.UserAuthenticationService;
 
 public class ApplicationLoginModule implements LoginModule {
 
-	private static final Logger log = Logger
-			.getLogger(ApplicationLoginModule.class);
+	private static final Logger log = Logger.getLogger(ApplicationLoginModule.class);
 
 	// initial state
 	private Subject subject;
@@ -34,29 +34,20 @@ public class ApplicationLoginModule implements LoginModule {
 	private Map options;
 
 	
-	private static final String GROUP_NAME = "GROUP_NAME";
-	private static final String PERMISSION_NAME = "PERMISSION_NAME";
-	private static final String DEFAULT_GROUP_NAME = "Roles";
-	private static final String DEFAULT_PERMISSION_NAME = "Permissions";
-	private static final String USE_PERMISSIONS_NAME = "USE_PERMISSIONS";
 	private static final String APP_CONTEXT_LOCATION = "APP_CONTEXT_LOCATION";
 	private static final String USER_AUTH_BEAN_NAME = "USER_AUTH_BEAN_NAME";
 
-	private String groupName = null;
-	private String permissionName = null;
 
 	private String contextLocation = null;
 	private String userBeanName = null;
 
-	private boolean debug = false;
-	private boolean hasPermissions = false;
-	
 	private boolean succeeded = false;
 	private boolean commitSucceeded = false;
 
-	private SecurityUser user;
-	private Set<String> roles;
-	private Set<String> permissions;
+	private Principal user;
+	
+	private String username;
+	private char[] password;
 
 	/**
 	 * <p>
@@ -121,22 +112,10 @@ public class ApplicationLoginModule implements LoginModule {
 
 		if (!subject.getPrincipals().contains(user)) {
 			subject.getPrincipals().add(user);
-			Group group = new UserGroup(groupName);
-			for (String role : roles) {
-				group.addMember(new UserPrincipal(role));
-			}
-			subject.getPrincipals().add(group);
-			if(hasPermissions){
-				group = new UserGroup(permissionName);
-				for(String permission: permissions){
-					group.addMember(new UserPrincipal(permission));
-				}
-				subject.getPrincipals().add(group);
-			}
 		}
 
-		if (debug) {
-			log.debug("added SamplePrincipal to Subject");
+		if (log.isDebugEnabled()) {
+			log.debug("added user to Subject");
 		}
 
 		commitSucceeded = true;
@@ -175,20 +154,11 @@ public class ApplicationLoginModule implements LoginModule {
 		this.options = options;
 
 		// initialize any configured options
-		debug = "true".equalsIgnoreCase((String) options.get("debug"));
-		groupName = (options.get(GROUP_NAME) != null) ? (String) options
-				.get(GROUP_NAME) : DEFAULT_GROUP_NAME;
-				
-		hasPermissions = "true".equalsIgnoreCase((String) options.get(USE_PERMISSIONS_NAME));
-		if(hasPermissions) {
-			permissionName = (options.get(PERMISSION_NAME) != null) ? (String) options
-					.get(PERMISSION_NAME) : DEFAULT_PERMISSION_NAME;
-		}
-		
-	    contextLocation = (String)options.get(APP_CONTEXT_LOCATION);
+			
+	    contextLocation = contextLocation = (String)options.get(APP_CONTEXT_LOCATION);
 	    userBeanName = (String) options.get(USER_AUTH_BEAN_NAME);
 	    
-	    if (debug){
+	    if (log.isDebugEnabled()){
 	    	log.debug("contextLocation: " + contextLocation);
 	    	log.debug("userBeanName: " + userBeanName);
 	    }
@@ -215,12 +185,9 @@ public class ApplicationLoginModule implements LoginModule {
 		if (contextLocation == null || userBeanName == null) {
 			throw new LoginException("One or many parameters are missing");
 		}
+		ApplicationContext ctx = new ClassPathXmlApplicationContext(contextLocation);
+		UserAuthenticationService userAuthenticator = (UserAuthenticationService) ctx.getBean(userBeanName);
 		try {
-			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext(contextLocation);
-			UserAuthenticationService userAuthenticator = (UserAuthenticationService) ctx.getBean(userBeanName);
-
-			String username;
-			char[] password;
 
 			Callback[] callbacks = new Callback[2];
 			callbacks[0] = new NameCallback("user name: ");
@@ -239,46 +206,49 @@ public class ApplicationLoginModule implements LoginModule {
 			((PasswordCallback) callbacks[1]).clearPassword();
 
 			// print debugging information
-			if (debug) {
+			if (log.isDebugEnabled()) {
 				log.debug("user entered user name: " + username);
 				log.debug("user entered password: " + String.valueOf(password));
 			}
-
-			user = userAuthenticator.authenticateUser(username, String.valueOf(tmpPassword));
-
+			
+			user = userAuthenticator.authenticate(username, String.valueOf(tmpPassword));
+		} catch (java.io.IOException ioe) {
+					throw new LoginException(ioe.toString());
+				} catch (UnsupportedCallbackException uce) {
+					throw new LoginException("Error: " + uce.getCallback().toString()
+							+ " not available to garner authentication information "
+							+ "from the user");
+				}
+			
 			
 			if (user == null) {
 				// authentication failed -- clean out state
-				if (debug)
+				if (log.isDebugEnabled())
 					log.debug("authentication failed");
 				
 				succeeded = false;
 				username = null;
 				for (int i = 0; i < password.length; i++)
 					password[i] = ' ';
-				throw new FailedLoginException("User not found.");
+				String reason = userAuthenticator.getReason();
+				if(UserAuthenticationService.UNKNOWN_USER_ERROR.equals(reason)) {
+					throw new FailedLoginException("User not found");
+				} else if(UserAuthenticationService.PASSWORD_CHANGE_REQUIRED.equals(reason)) {
+					throw new PasswordChangeRequiredException("You need to change your password");
+				} else if(UserAuthenticationService.PASSWORD_EXPIRED.equals(reason)) {
+					throw new PasswordExpiredException("Your password has expired"); 
+				} else if(UserAuthenticationService.USER_DISABLED_ERROR.equals(reason)) {
+					throw new UserDisabledException("Your user has expired");
+				} else if (UserAuthenticationService.BAD_PASSWORD.equals(reason)) {
+					throw new BadPasswordException("Wrong password");
+				}
 			}
-			roles = userAuthenticator.getRoles(user);
 			
-			if(hasPermissions){
-				permissions = userAuthenticator.getPermissions(user);
-			}
-			
-			if (debug)
+			if (log.isDebugEnabled())
 				log.debug("authentication succeeded");
 			
 			succeeded = true;
 			
-		} catch (java.io.IOException ioe) {
-			throw new LoginException(ioe.toString());
-		} catch (UnsupportedCallbackException uce) {
-			throw new LoginException("Error: " + uce.getCallback().toString()
-					+ " not available to garner authentication information "
-					+ "from the user");
-		} catch (Exception e) {
-			log.error("Unexpected Exception. ", e);
-			throw new LoginException("Unexpected Exception: " + e.getMessage());
-		}
 		return succeeded;
 	}
 
