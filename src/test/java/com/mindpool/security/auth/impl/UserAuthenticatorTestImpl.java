@@ -1,9 +1,10 @@
 package com.mindpool.security.auth.impl;
 
-import java.util.Set;
+import java.security.Principal;
+
+import javax.security.auth.login.LoginException;
 
 import com.mindpool.security.principal.MockUser;
-import com.mindpool.security.principal.SecurityUser;
 import com.mindpool.security.service.UserAuthenticationService;
 
 public class UserAuthenticatorTestImpl implements UserAuthenticationService {
@@ -11,7 +12,7 @@ public class UserAuthenticatorTestImpl implements UserAuthenticationService {
 	MockUser user;
 	
 	
-	public SecurityUser authenticateUser(String username, String password) throws Exception {
+	public Principal authenticate(String username, String password) throws LoginException {
 		if(username.equals(user.getUsername()) && password.equals(password)) {
 			return user;
 		}
@@ -19,17 +20,14 @@ public class UserAuthenticatorTestImpl implements UserAuthenticationService {
 		return null;
 	}
 	
-	public Set<String> getRoles(SecurityUser user) {
-		return user.getRoles();
-	}
-	
-	public Set<String> getPermissions(SecurityUser user) {
-		throw new SecurityException("Method not implemented");
-	}
-	
 	
 	public void setUser(MockUser user){
 		this.user = user;
+	}
+	
+	public String getReason() {
+		/* not implemented for this test */
+		return null;
 	}
 	
 
