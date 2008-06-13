@@ -1,9 +1,10 @@
 package com.mindpool.security.principal;
 
+import java.security.Principal;
 import java.util.HashSet;
 import java.util.Set;
 
-public class MockUser implements SecurityUser {
+public class MockUser implements Principal {
 
 	private String username;
 	private String password;

@@ -27,11 +27,11 @@ public class ApplicationLoginModuleTest extends TestCase {
 	public void testLogin() {
 		LoginContext lc = null;
 		try {
-		    lc = new LoginContext("spm", new UserPasswordCallBackHandler("torimpo", "123"));
+		    lc = new LoginContext("spm", new UserPasswordCallBackHandler("torimpo", "java1234"));
 		    lc.login();
 		    Set<Principal> principals = lc.getSubject().getPrincipals();
 		  //I will take only two principals (The username and the name of the group		    
-		    assertEquals(principals.size(), 2);
+		    assertEquals(principals.size(), 1);
 
 		    for(Principal principal: principals) {
 		    	System.out.println(principal.getName());
