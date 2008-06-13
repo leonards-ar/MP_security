@@ -15,10 +15,7 @@ import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
 import org.apache.log4j.Logger;
-import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
-import org.springframework.beans.factory.xml.XmlBeanFactory;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.mindpool.security.principal.SecurityUser;
 import com.mindpool.security.principal.UserGroup;
@@ -48,7 +45,7 @@ public class ApplicationLoginModule implements LoginModule {
 	private String groupName = null;
 	private String permissionName = null;
 
-	private Resource contextLocation = null;
+	private String contextLocation = null;
 	private String userBeanName = null;
 
 	private boolean debug = false;
@@ -188,7 +185,7 @@ public class ApplicationLoginModule implements LoginModule {
 					.get(PERMISSION_NAME) : DEFAULT_PERMISSION_NAME;
 		}
 		
-	    contextLocation = new ClassPathResource((String)options.get(APP_CONTEXT_LOCATION));
+	    contextLocation = (String)options.get(APP_CONTEXT_LOCATION);
 	    userBeanName = (String) options.get(USER_AUTH_BEAN_NAME);
 	    
 	    if (debug){
@@ -219,12 +216,8 @@ public class ApplicationLoginModule implements LoginModule {
 			throw new LoginException("One or many parameters are missing");
 		}
 		try {
-			XmlBeanFactory bf = new XmlBeanFactory(contextLocation);
-			PropertyPlaceholderConfigurer cfg = new PropertyPlaceholderConfigurer();
-			cfg.setLocation(new ClassPathResource("spm.properties"));
-			cfg.postProcessBeanFactory(bf);
-			
-			UserAuthenticationService userAuthenticator = (UserAuthenticationService) bf.getBean(userBeanName);
+			ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext(contextLocation);
+			UserAuthenticationService userAuthenticator = (UserAuthenticationService) ctx.getBean(userBeanName);
 
 			String username;
 			char[] password;
