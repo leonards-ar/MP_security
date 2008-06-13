@@ -12,7 +12,7 @@ public interface UserAuthenticationService {
 	public static final String PASSWORD_EXPIRED = "PASSWORD_EXPIRED";
 	public static final String BAD_PASSWORD = "BAD_PASSWORD";
 	
-	public Principal authenticate(String username, String password) throws LoginException;
+	public Principal authenticate(String username, String password);
 	public String getReason();
 	
 }
