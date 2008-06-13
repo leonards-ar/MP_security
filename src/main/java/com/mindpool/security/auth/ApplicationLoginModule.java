@@ -16,16 +16,19 @@ import javax.security.auth.spi.LoginModule;
 import org.apache.log4j.Logger;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.dao.DataAccessException;
 
 import com.mindpool.security.exceptions.BadPasswordException;
 import com.mindpool.security.exceptions.PasswordChangeRequiredException;
 import com.mindpool.security.exceptions.PasswordExpiredException;
+import com.mindpool.security.exceptions.UnknownUserException;
 import com.mindpool.security.exceptions.UserDisabledException;
 import com.mindpool.security.service.UserAuthenticationService;
 
 public class ApplicationLoginModule implements LoginModule {
 
-	private static final Logger log = Logger.getLogger(ApplicationLoginModule.class);
+	private static final Logger log = Logger
+			.getLogger(ApplicationLoginModule.class);
 
 	// initial state
 	private Subject subject;
@@ -33,10 +36,8 @@ public class ApplicationLoginModule implements LoginModule {
 	private Map sharedState;
 	private Map options;
 
-	
 	private static final String APP_CONTEXT_LOCATION = "APP_CONTEXT_LOCATION";
 	private static final String USER_AUTH_BEAN_NAME = "USER_AUTH_BEAN_NAME";
-
 
 	private String contextLocation = null;
 	private String userBeanName = null;
@@ -45,7 +46,7 @@ public class ApplicationLoginModule implements LoginModule {
 	private boolean commitSucceeded = false;
 
 	private Principal user;
-	
+
 	private String username;
 	private char[] password;
 
@@ -75,6 +76,11 @@ public class ApplicationLoginModule implements LoginModule {
 		} else if (succeeded == true && commitSucceeded == false) {
 			// login succeeded but overall authentication failed
 			succeeded = false;
+			username = null;
+			for (int i = 0; i < password.length; i++) {
+				password[i] = ' ';
+			}
+            user = null;
 		} else {
 			// overall authentication succeeded and commit succeeded,
 			// but someone else's commit failed
@@ -107,6 +113,11 @@ public class ApplicationLoginModule implements LoginModule {
 	 */
 	public boolean commit() throws LoginException {
 		if (succeeded == false) {
+			username = null;
+			for (int i = 0; i < password.length; i++) {
+				password[i] = ' ';
+			}
+			
 			return false;
 		}
 
@@ -119,7 +130,7 @@ public class ApplicationLoginModule implements LoginModule {
 		}
 
 		commitSucceeded = true;
-
+	
 		return true;
 	}
 
@@ -154,14 +165,15 @@ public class ApplicationLoginModule implements LoginModule {
 		this.options = options;
 
 		// initialize any configured options
-			
-	    contextLocation = contextLocation = (String)options.get(APP_CONTEXT_LOCATION);
-	    userBeanName = (String) options.get(USER_AUTH_BEAN_NAME);
-	    
-	    if (log.isDebugEnabled()){
-	    	log.debug("contextLocation: " + contextLocation);
-	    	log.debug("userBeanName: " + userBeanName);
-	    }
+
+		contextLocation = contextLocation = (String) options
+				.get(APP_CONTEXT_LOCATION);
+		userBeanName = (String) options.get(USER_AUTH_BEAN_NAME);
+
+		if (log.isDebugEnabled()) {
+			log.debug("contextLocation: " + contextLocation);
+			log.debug("userBeanName: " + userBeanName);
+		}
 
 	}
 
@@ -185,8 +197,10 @@ public class ApplicationLoginModule implements LoginModule {
 		if (contextLocation == null || userBeanName == null) {
 			throw new LoginException("One or many parameters are missing");
 		}
-		ApplicationContext ctx = new ClassPathXmlApplicationContext(contextLocation);
-		UserAuthenticationService userAuthenticator = (UserAuthenticationService) ctx.getBean(userBeanName);
+		ApplicationContext ctx = new ClassPathXmlApplicationContext(
+				contextLocation);
+		UserAuthenticationService userAuthenticator = (UserAuthenticationService) ctx
+				.getBean(userBeanName);
 		try {
 
 			Callback[] callbacks = new Callback[2];
@@ -210,45 +224,52 @@ public class ApplicationLoginModule implements LoginModule {
 				log.debug("user entered user name: " + username);
 				log.debug("user entered password: " + String.valueOf(password));
 			}
-			
-			user = userAuthenticator.authenticate(username, String.valueOf(tmpPassword));
+
+			user = userAuthenticator.authenticate(username, String
+					.valueOf(tmpPassword));
 		} catch (java.io.IOException ioe) {
-					throw new LoginException(ioe.toString());
-				} catch (UnsupportedCallbackException uce) {
-					throw new LoginException("Error: " + uce.getCallback().toString()
-							+ " not available to garner authentication information "
-							+ "from the user");
-				}
-			
-			
-			if (user == null) {
-				// authentication failed -- clean out state
-				if (log.isDebugEnabled())
-					log.debug("authentication failed");
-				
-				succeeded = false;
-				username = null;
-				for (int i = 0; i < password.length; i++)
-					password[i] = ' ';
-				String reason = userAuthenticator.getReason();
-				if(UserAuthenticationService.UNKNOWN_USER_ERROR.equals(reason)) {
-					throw new FailedLoginException("User not found");
-				} else if(UserAuthenticationService.PASSWORD_CHANGE_REQUIRED.equals(reason)) {
-					throw new PasswordChangeRequiredException("You need to change your password");
-				} else if(UserAuthenticationService.PASSWORD_EXPIRED.equals(reason)) {
-					throw new PasswordExpiredException("Your password has expired"); 
-				} else if(UserAuthenticationService.USER_DISABLED_ERROR.equals(reason)) {
-					throw new UserDisabledException("Your user has expired");
-				} else if (UserAuthenticationService.BAD_PASSWORD.equals(reason)) {
-					throw new BadPasswordException("Wrong password");
-				}
-			}
-			
+			throw new LoginException(ioe.toString());
+		} catch (UnsupportedCallbackException uce) {
+			throw new LoginException("Error: " + uce.getCallback().toString()
+					+ " not available to garner authentication information "
+					+ "from the user");
+		}
+
+		if (user == null) {
+			// authentication failed -- clean out state
 			if (log.isDebugEnabled())
-				log.debug("authentication succeeded");
-			
-			succeeded = true;
-			
+				log.debug("authentication failed");
+
+			succeeded = false;
+
+
+			String reason = userAuthenticator.getReason();
+			if (UserAuthenticationService.UNKNOWN_USER_ERROR.equals(reason)) {
+				if(log.isDebugEnabled()) log.debug("Account for user '" + username + "' is unknown");
+				throw new UnknownUserException("Account for user '" + username + "' is unknown");
+			} else if (UserAuthenticationService.PASSWORD_CHANGE_REQUIRED.equals(reason)) {
+				if(log.isDebugEnabled()) log.debug("Password must be changed");
+				throw new PasswordChangeRequiredException("Password must be changed");
+			} else if (UserAuthenticationService.PASSWORD_EXPIRED.equals(reason)) {
+				if(log.isDebugEnabled()) log.debug("Password has expired");
+				throw new PasswordExpiredException("Password has expired");
+			} else if (UserAuthenticationService.USER_DISABLED_ERROR.equals(reason)) {
+				if(log.isDebugEnabled()) log.debug("Account for user '" + username + "' is expired");
+				throw new UserDisabledException("Account for user '" + username + "' is expired");
+			} else if (UserAuthenticationService.BAD_PASSWORD.equals(reason)) {
+				if(log.isDebugEnabled()) log.debug("Wrong password");
+				throw new BadPasswordException("Password is wrong");
+			} else {
+				if(log.isDebugEnabled()) log.debug("Authentication for user '" + username + "' failed");
+				throw new FailedLoginException("Authentication for user '" + username + "' failed");
+			}
+		}
+
+		if (log.isDebugEnabled())
+			log.debug("authentication succeeded");
+
+		succeeded = true;
+
 		return succeeded;
 	}
 
@@ -270,8 +291,11 @@ public class ApplicationLoginModule implements LoginModule {
 	public boolean logout() throws LoginException {
 		subject.getPrincipals().remove(user);
 		succeeded = false;
-		succeeded = commitSucceeded;
-
+		succeeded = false;
+		username = null;
+		for (int i = 0; i < password.length; i++) {
+			password[i] = ' ';
+		}
 		user = null;
 		return true;
 	}
