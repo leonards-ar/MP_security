@@ -15,7 +15,7 @@ import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
 import org.apache.log4j.Logger;
-import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.beans.factory.xml.XmlBeanFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
@@ -219,10 +219,12 @@ public class ApplicationLoginModule implements LoginModule {
 			throw new LoginException("One or many parameters are missing");
 		}
 		try {
-			BeanFactory bf = new XmlBeanFactory(contextLocation);
-
-			UserAuthenticationService userAuthenticator = (UserAuthenticationService) bf
-					.getBean(userBeanName);
+			XmlBeanFactory bf = new XmlBeanFactory(contextLocation);
+			PropertyPlaceholderConfigurer cfg = new PropertyPlaceholderConfigurer();
+			cfg.setLocation(new ClassPathResource("spm.properties"));
+			cfg.postProcessBeanFactory(bf);
+			
+			UserAuthenticationService userAuthenticator = (UserAuthenticationService) bf.getBean(userBeanName);
 
 			String username;
 			char[] password;
