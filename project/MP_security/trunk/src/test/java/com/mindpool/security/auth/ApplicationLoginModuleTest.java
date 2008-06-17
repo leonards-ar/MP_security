@@ -20,7 +20,7 @@ public class ApplicationLoginModuleTest extends TestCase {
 	
 	public void setUp() throws IOException, NamingException{
 		String osWork = System.getProperty("user.dir");
-		System.setProperty("java.security.auth.login.config", osWork + "\\src\\test\\resources\\spm_jaas.conf");
+		System.setProperty("java.security.auth.login.config", osWork + "/src/test/resources/spm_jaas.conf");
 		
 	}
 	
