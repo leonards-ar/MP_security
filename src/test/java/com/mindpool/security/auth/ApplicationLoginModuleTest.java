@@ -2,6 +2,7 @@ package com.mindpool.security.auth;
 
 import java.io.IOException;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Set;
 
 import javax.naming.NamingException;
@@ -9,6 +10,8 @@ import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 
 import junit.framework.TestCase;
+
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.mindpool.security.auth.CallbackHandler.UserPasswordCallBackHandler;
 
@@ -41,10 +44,12 @@ public class ApplicationLoginModuleTest extends TestCase {
 		} catch (LoginException le) {
 		    System.err.println("Cannot create LoginContext. "
 		        + le.getMessage());
+		    le.printStackTrace();
 		    System.exit(-1);
 		} catch (SecurityException se) {
 		    System.err.println("Cannot create LoginContext. "
 		        + se.getMessage());
+		    se.printStackTrace();
 		    System.exit(-1);
 		} 
 	}

@@ -14,9 +14,8 @@ import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
 import org.apache.log4j.Logger;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.dao.DataAccessException;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.context.access.ContextSingletonBeanFactoryLocator;
 
 import com.mindpool.security.exceptions.BadPasswordException;
 import com.mindpool.security.exceptions.PasswordChangeRequiredException;
@@ -36,10 +35,10 @@ public class ApplicationLoginModule implements LoginModule {
 	private Map sharedState;
 	private Map options;
 
-	private static final String APP_CONTEXT_LOCATION = "APP_CONTEXT_LOCATION";
+	private static final String BEAN_FACTORY_NAME = "BEAN_FACTORY_NAME";
 	private static final String USER_AUTH_BEAN_NAME = "USER_AUTH_BEAN_NAME";
 
-	private String contextLocation = null;
+	private String beanFactoryName = null;
 	private String userBeanName = null;
 
 	private boolean succeeded = false;
@@ -166,12 +165,12 @@ public class ApplicationLoginModule implements LoginModule {
 
 		// initialize any configured options
 
-		contextLocation = contextLocation = (String) options
-				.get(APP_CONTEXT_LOCATION);
+		beanFactoryName = (String) options
+				.get(BEAN_FACTORY_NAME);
 		userBeanName = (String) options.get(USER_AUTH_BEAN_NAME);
 
 		if (log.isDebugEnabled()) {
-			log.debug("contextLocation: " + contextLocation);
+			log.debug("context: " + beanFactoryName);
 			log.debug("userBeanName: " + userBeanName);
 		}
 
@@ -194,13 +193,11 @@ public class ApplicationLoginModule implements LoginModule {
 	 *                the authentication.
 	 */
 	public boolean login() throws LoginException {
-		if (contextLocation == null || userBeanName == null) {
+		if (beanFactoryName == null || userBeanName == null) {
 			throw new LoginException("One or many parameters are missing");
 		}
-		ApplicationContext ctx = new ClassPathXmlApplicationContext(
-				contextLocation);
-		UserAuthenticationService userAuthenticator = (UserAuthenticationService) ctx
-				.getBean(userBeanName);
+		BeanFactory bf = ContextSingletonBeanFactoryLocator.getInstance().useBeanFactory(beanFactoryName).getFactory();
+		UserAuthenticationService userAuthenticator = (UserAuthenticationService) bf.getBean(userBeanName);
 		try {
 
 			Callback[] callbacks = new Callback[2];
