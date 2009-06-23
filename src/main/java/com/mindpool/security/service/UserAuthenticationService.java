@@ -2,8 +2,6 @@ package com.mindpool.security.service;
 
 import java.security.Principal;
 
-import javax.security.auth.login.LoginException;
-
 public interface UserAuthenticationService {
 
 	public static final String UNKNOWN_USER_ERROR = "UNKNOWN_USER_ERROR";
